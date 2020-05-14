@@ -98,6 +98,8 @@ CD "%Home%"
 
 ::--- Cleanup old logfiles
 :Cleanup
+cls
+
 IF "%CleanupPolicy%"=="" goto Compress
 IF "%CleanupPolicy%"=="0" goto Compress
 echo #### Cleaning up all snaps older than %CleanupPolicy% days %Home%.
@@ -106,12 +108,16 @@ forfiles -p %Home% -d -%CleanupPolicy% -m ".7z" -c "cmd /c del /q @path"
 
 ::--- Compress
 :Compress
+cls
+
 IF not "%BackupCompress%"=="true" goto CheckParameters
 echo ### Compressing all uncompressed snaps. 
 forfiles -p %Home% -c "cmd /c IF @isdir == TRUE %~dp0\7za.exe a -bsp1 -bso0 -mx1 @path @path/*" 
 forfiles -p %Home% -c "cmd /c IF @isdir == TRUE rd /S /Q @path"
 
 :CheckParameters
+cls
+
 if "%1"=="silent" goto Backup
 
 pushd "%SettingsFolder%"
