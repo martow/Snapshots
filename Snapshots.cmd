@@ -248,7 +248,7 @@ goto SettingsFile
 :Compress_Snap
 echo #### Compress snap with 7zip
 :: Compress
-"%~dp0\7za.exe" a -mx1 %Home%\%backupdir% %Home%\%backupdir%/*
+"%~dp0\7za.exe" a -bsp1 -bso0 -mx1 %Home%\%backupdir% %Home%\%backupdir%/*
 echo #### Snapshot compressed, available under %Home%\%backupdir% &echo %_isodate% Snapshot compressed, available under %Home%\%backupdir%>>"%LogFile%_Info.log"
 
 :: Remove directory
