@@ -1,3 +1,5 @@
+> **_NOTE:_**  Extension of the Snapshot tool (QlikDeploymentFramework/Snapshots) with compression and cleanup support. 
+
 # Snapshot Tool
 The Snapshots Tool is a Qlik Sense Enterprise command line tool (script) that utilizes PostGreSQL and file copy commands to store backups into a folder logic the snapshots and makes it possible to jump in time between multiple snapshots. Snapshots also incorporates a "safety net" so that reversion back to previous state is possible. The tool must run from the CentralNode and will automatically identify the environment and create snaps of the current Qlik Sense environment.
 
@@ -107,6 +109,10 @@ set PostGreDB=QSR
 set CertExportPWD=QlikSense
 ::--- Activate to backup ArchivedLogs, else no logs will be backed
 ::set BackupArchivedLogs=true
+::--- Activate to compress Backups
+::SET BackupCompress=true
+::--- Activate CleanupPolicy in silent mode
+::SET CleanupPolicy=true
 ```
 ### Certificate Export Password
 To change the default certificate export password modify: 
@@ -148,6 +154,26 @@ Snapshots will automatically identify the PostgreSQL version, this can manually 
 ```sh
 set PostGreVersion=9.6
 ``` 
+## Compressed
+It is possible to compress the snaps with 7zip, enable the flag to automaticly compress snaps on creation. 
+```sh
+SET BackupCompress=true
+``` 
+When enabled on startup uncompressed snaps are automaticly compressed. 
+It is possible to extract a compressed snap in order to inspect the content in the file explorer. 
+To do this startup the tool. And then select the (compressed) snap. 
+```sh
+SET BackupCompress=true
+``` 
+
+## Cleanup
+Cleanup the snaps older than the given number of days. 
+```sh
+SET CleanupPolicy=3
+``` 
+Works in both silent and user mode. 
+
+
 ## Log
 Log files is created for every backup and recovery, stored under Log folder created by snapshots:
 >  ![N|Solid](https://raw.githubusercontent.com/QlikDeploymentFramework/Snapshots/master/Images/9.png)

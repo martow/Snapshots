@@ -29,6 +29,12 @@ SET CertExportPWD=QlikSense
 ::--- Activate to backup ArchivedLogs, else no logs will be backed
 ::SET BackupArchivedLogs=true
 
+::--- Activate to compress Backups
+SET BackupCompress=true
+
+::--- Activate CleanupPolicy
+SET CleanupPolicy=5
+
 ::--- Default folder settings, settings below are identifyed automatically when running Shared Persistence
 ::--- Warning! Modify only if using Multi Sync, else folders are identified automatically
 SET Apps=%SenseDataFolder%\Sense\Apps
@@ -46,9 +52,9 @@ SET Section=createfolders &goto isodate
 ::--- Home and backup locations default is same folder as script
 mkdir "%~dp0\Snaps"
 SET backupdir=%2
-SET Home=%~dp0\Snaps
-SET SettingsFolder=%~dp0\Settings
-SET LogFolder=%~dp0\Log
+SET Home=%~dp0Snaps
+SET SettingsFolder=%~dp0Settings
+SET LogFolder=%~dp0Log
 mkdir "%SettingsFolder%"
 mkdir "%LogFolder%"
 SET LogFile=%LogFolder%\%_isodate%
@@ -89,6 +95,23 @@ if "%2"=="" SET backupdir=%_isodate%_%computername%
 
 CD "%Home%"
 
+
+::--- Cleanup old logfiles
+:Cleanup
+IF "%CleanupPolicy%"=="" goto Compress
+IF "%CleanupPolicy%"=="0" goto Compress
+echo #### Cleaning up all snaps older than %CleanupPolicy% days %Home%.
+forfiles -p %Home% -d -%CleanupPolicy% -c "cmd /c IF @isdir == TRUE rd /S /Q @path"
+forfiles -p %Home% -d -%CleanupPolicy% -m ".7z" -c "cmd /c del /q @path"
+
+::--- Compress
+:Compress
+IF not "%BackupCompress%"=="true" goto CheckParameters
+echo ### Compressing all uncompressed snaps. 
+forfiles -p %Home% -c "cmd /c IF @isdir == TRUE %~dp0\7za.exe a -bsp1 -bso0 -mx1 @path @path/*" 
+forfiles -p %Home% -c "cmd /c IF @isdir == TRUE rd /S /Q @path"
+
+:CheckParameters
 if "%1"=="silent" goto Backup
 
 pushd "%SettingsFolder%"
@@ -113,7 +136,7 @@ echo RootCert Subject Name: %RootSubjectName%
 echo.
 echo -------  Available Snapshots:  --------
 echo.
-dir "%Home%\*" /B /A:D 
+dir "%Home%\*" /B
 echo.
 
 
@@ -126,6 +149,25 @@ SET /P DBFolder=
 echo.
 
 
+for %%a in ("%DBFolder%") do (
+    SET DBExtension=%%~xa
+    SET DBFolder=%%~na
+)
+IF "%DBExtension%"=="" goto Contain_Files
+IF not "%DBExtension%"==".7z" goto DIR
+
+Choice /M "Do you want to extract snap %DBFolder%%DBExtension%, press Y to continue"
+echo.
+IF ERRORLEVEL 2 goto DIR
+
+echo #### Extract snap with 7zip
+"%~dp0\7za.exe" x -bsp1 -bso0 %Home%\%DBFolder%%DBExtension% -o%Home%\%DBFolder%
+del /q %Home%\%DBFolder%%DBExtension%
+echo #### Snapshot uncompressed, available under %Home%\%backupdir% &echo %_isodate% Snapshot uncompressed, available under %Home%\%backupdir%>>"%LogFile%_Info.log"
+
+
+
+:Contain_Files
 IF NOT EXIST "%Home%\%DBFolder%\*.*" goto DIR
 if "%DBFolder%"=="" goto Backup
 
@@ -195,9 +237,26 @@ popd
 echo #### Store settings file into snap
 pushd "%Home%\%backupdir%\"
 
-SET Section=Backup_end
+
+IF "%BackupCompress%"=="true" SET Section=Compress_Snap 
+IF "%BackupCompress%"=="" SET Section=Backup_end
+
 :: Go to Common settings file sub
 goto SettingsFile
+
+
+:Compress_Snap
+echo #### Compress snap with 7zip
+:: Compress
+"%~dp0\7za.exe" a -mx1 %Home%\%backupdir% %Home%\%backupdir%/*
+echo #### Snapshot compressed, available under %Home%\%backupdir% &echo %_isodate% Snapshot compressed, available under %Home%\%backupdir%>>"%LogFile%_Info.log"
+
+:: Remove directory
+rd /S /Q  %Home%\%backupdir%
+echo #### Uncompressed snapshot deleted &echo %_isodate% Uncompressed snapshot deleted>>"%LogFile%_Info.log"
+
+goto Backup_end
+
 
 :Backup_end
 if "%1"=="silent" goto end
